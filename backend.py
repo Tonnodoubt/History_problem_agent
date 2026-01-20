@@ -3,6 +3,7 @@ from pydantic import BaseModel
 import requests
 import json
 import re
+import os
 
 app = FastAPI()
 
@@ -103,36 +104,6 @@ def call_ragflow_api(prompt: str):
     except Exception as e:
         print(f"❌ 发生系统错误: {str(e)}")
         raise e
-
-@app.post("/generate_question")
-def generate_question(req: QuestionRequest):
-    # 组装提示词
-    safe_prompt = f"""
-    你是一个高中历史出题专家。请基于知识库内容，设计一道关于【{req.topic}】的【{req.question_type}】。
-    
-    【出题要求】
-    1. 考察素养：{', '.join(req.competencies)}
-    2. 难度等级：{req.difficulty}
-    3. 史料类型：请包含【{req.material_type}】。
-    4. 核心规则：
-       - 必须以严格的 JSON 格式输出，不要包含 Markdown 标记。
-       - JSON 包含字段：material(材料内容), question_body(题干), options(字典,如选择题), answer(答案), analysis(解析)。
-       - 如果是选择题，options 必须包含 A, B, C, D。
-       - 如果是非选择题，options 留空字典 {{}}。
-    """
-    
-    try:
-        if "请在这里填入你的chat_id" in CHAT_ID:
-             raise HTTPException(status_code=500, detail="请先在 backend.py 文件中填入您的 RAGFlow Chat ID！")
-
-        result_data = call_ragflow_api(safe_prompt)
-        result_data['type'] = req.question_type
-        return {"status": "success", "data": result_data}
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    
-
 
 # 加载 JSON 配置 (为了在后端获取素养对应的 prompt_rule)
 # 注意：你需要确保 backend.py 同级目录下有 curriculum_data.json
